@@ -1,4 +1,4 @@
-name: generic-database-charm
+name: generic-database
 summary: Generic-database-charm acting as a proxy + apache + adminer.php 
 maintainer: student <student@student-VirtualBox>
 description: |
