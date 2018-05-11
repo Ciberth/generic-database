@@ -106,19 +106,19 @@ def render_mysql_config_and_share_details():
     
     # fill dictionary 
     db_details['technology'] = "mysql"
-    db_details['password'] = mysql_endpoint.password()
-    db_details['dbname'] = mysql_endpoint.database()
-    db_details['host'] = mysql_endpoint.hostname()
-    db_details['user'] = mysql_endpoint.username()
+    db_details['password'] = mysql_endpoint.password("proto")
+    db_details['dbname'] = mysql_endpoint.database("proto")
+    db_details['host'] = mysql_endpoint.db_host()
+    db_details['user'] = mysql_endpoint.username("proto")
     db_details['port'] = "3306"
 
     # On own apache
     render('gdb-config.j2', '/var/www/generic-database/gdb-config.html', {
         'db_master': "no-master",
-        'db_pass': mysql_endpoint.password(),
-        'db_dbname': mysql_endpoint.database(),
-        'db_host': mysql_endpoint.hostname(),
-        'db_user': mysql_endpoint.username(),
+        'db_pass': mysql_endpoint.password("proto"),
+        'db_dbname': mysql_endpoint.database("proto"),
+        'db_host': mysql_endpoint.db_host(),
+        'db_user': mysql_endpoint.username("proto"),
         'db_port': "3306",
     })
     # share details to consumer-app
@@ -126,10 +126,10 @@ def render_mysql_config_and_share_details():
     
     gdb_endpoint.share_details(
         "mysql",
-        mysql_endpoint.hostname(),
-        mysql_endpoint.database(),
-        mysql_endpoint.username(),
-        mysql_endpoint.password(),
+        mysql_endpoint.db_host(),
+        mysql_endpoint.database("proto"),
+        mysql_endpoint.username("proto"),
+        mysql_endpoint.password("proto"),
         "3306",
     )
     
