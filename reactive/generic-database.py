@@ -12,6 +12,15 @@ from charms.reactive import Endpoint
 # Once this generic database becomes concrete the following dictionary will keep all information
 
 db_details = {}
+db_details['technology'] = "placeholder"
+db_details['dbname'] = "placeholder"
+
+################################################
+#                                              #
+# Apache stuff                                 #
+#                                              #
+################################################
+
 
 @when('apache.available')
 def finishing_up_setting_up_sites():
@@ -21,9 +30,15 @@ def finishing_up_setting_up_sites():
 @when('apache.start')
 def ready():
     host.service_reload('apache2')
-    status_set('active', 'apache ready')
+    status_set('active', 'apache ready - gdb not concrete')
 
 # only postgres for now, but same idea for mysql, mongo for following 2 functions
+
+###############################################
+#
+# Postgresql support
+#
+###############################################
 
 
 @when('pgsqldb.connected', 'endpoint.generic-database.postgresql.requested')
@@ -71,12 +86,86 @@ def render_pgsql_config_and_share_details():
     set_flag('endpoint.generic-database.concrete')
     set_flag('restart-app')
 
-# todo config changed ?
-# todo when new charms gets a new relation to this charm - share the details of the chosen db connection
-# something like @when('endpoint.generic-database.concrete')
+
+###############################################
+#
+# Mysql support
+#
+###############################################
+
+@when('mysqldb.connected', 'endpoint.generic-database.mysql.requested')
+def request_mysql_db():
+    mysql_endpoint = endpoint_from_flag('mysqldb.connected')
+    mysql_endpoint.configure('mysql_db_a', 'admin', prefix="proto")
+    status_set('maintenance', 'Requesting mysql db')
+
+
+@when('mysqldb.available', 'endpoint.generic-database.mysql.requested')
+def render_mysql_config_and_share_details():   
+    mysql_endpoint = endpoint_from_flag('mysqldb.available')
+    
+    # fill dictionary 
+    db_details['technology'] = "mysql"
+    db_details['password'] = mysql_endpoint.password()
+    db_details['dbname'] = mysql_endpoint.database()
+    db_details['host'] = mysql_endpoint.hostname()
+    db_details['user'] = mysql_endpoint.username()
+    db_details['port'] = "3306"
+
+    # On own apache
+    render('gdb-config.j2', '/var/www/generic-database/gdb-config.html', {
+        'db_master': "no-master",
+        'db_pass': mysql_endpoint.password(),
+        'db_dbname': mysql_endpoint.database(),
+        'db_host': mysql_endpoint.hostname(),
+        'db_user': mysql_endpoint.username(),
+        'db_port': "3306",
+    })
+    # share details to consumer-app
+    gdb_endpoint = endpoint_from_flag('endpoint.generic-database.mysql.requested')
+    
+    gdb_endpoint.share_details(
+        "mysql",
+        mysql_endpoint.hostname(),
+        mysql_endpoint.database(),
+        mysql_endpoint.username(),
+        mysql_endpoint.password(),
+        "3306",
+    )
+    
+    clear_flag('endpoint.generic-database.mysql.requested')
+    set_flag('endpoint.generic-database.mysql.available')
+    set_flag('endpoint.generic-database.concrete')
+    set_flag('restart-app')
+
+
 
 @when('restart-app')
 def restart_app():
     host.service_reload('apache2')
     clear_flag('restart-app')
-    status_set('active', 'Apache/gdb ready')
+    status_set('active', 'Apache/gdb ready and concrete')
+
+
+# A new relation is added to an already concrete generic database
+if db_details['dbname']:
+    request_flag = 'endpoint.generic-database.' + db_details['dbname'] + '.requested'
+#else:
+# do i need to set something to request_flag here?
+
+@when('endpoint.generic-database.concrete', request_flag)
+def share_details_to_new_relation():
+    gdb_endpoint = endpoint_from_flag(request_flag)
+    
+    if gdb_endpoint['dbname'] == db_details['dbname']:
+
+        gdb_endpoint.share_details(
+            db_details['technology'],
+            db_details['host'],
+            db_details['dbname'],
+            db_details['user'],
+            db_details['password'],
+            db_details['port'],
+        )
+    dbname_flag = 'endpoint.generic-database.' + db_details['dbname'] + '.requested'
+    clear_flag(dbname_flag)
