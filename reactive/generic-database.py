@@ -96,10 +96,9 @@ def render_pgsql_config_and_share_details():
 @when('mysqldb.connected', 'endpoint.generic-database.mysql.requested')
 def request_mysql_db():
     mysql_endpoint = endpoint_from_flag('mysqldb.connected')
-    mysql_endpoint.configure('gdb_mysql-db', 'gdb_mysql-user', prefix="gdb")
+    mysql_endpoint.configure('gdb_mysql_db', 'gdb_mysql_user', prefix="gdb")
     # todo
     # username = unit-name-user ; password = generated ; dbname = unit-name-db ; prefix = gdb (only 1 db anyways)
-    
     status_set('maintenance', 'Requesting mysql db')
 
 
