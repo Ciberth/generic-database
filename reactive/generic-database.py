@@ -96,7 +96,10 @@ def render_pgsql_config_and_share_details():
 @when('mysqldb.connected', 'endpoint.generic-database.mysql.requested')
 def request_mysql_db():
     mysql_endpoint = endpoint_from_flag('mysqldb.connected')
-    mysql_endpoint.configure('mysql_db_a', 'admin', prefix="proto")
+    mysql_endpoint.configure('gdb_mysql-db', 'gdb_mysql-user', prefix="gdb")
+    # todo
+    # username = unit-name-user ; password = generated ; dbname = unit-name-db ; prefix = gdb (only 1 db anyways)
+    
     status_set('maintenance', 'Requesting mysql db')
 
 
@@ -106,19 +109,19 @@ def render_mysql_config_and_share_details():
     
     # fill dictionary 
     db_details['technology'] = "mysql"
-    db_details['password'] = mysql_endpoint.password("proto")
-    db_details['dbname'] = mysql_endpoint.database("proto")
+    db_details['password'] = mysql_endpoint.password("gdb")
+    db_details['dbname'] = mysql_endpoint.database("gdb")
     db_details['host'] = mysql_endpoint.db_host()
-    db_details['user'] = mysql_endpoint.username("proto")
+    db_details['user'] = mysql_endpoint.username("gdb")
     db_details['port'] = "3306"
 
     # On own apache
     render('gdb-config.j2', '/var/www/generic-database/gdb-config.html', {
         'db_master': "no-master",
-        'db_pass': mysql_endpoint.password("proto"),
-        'db_dbname': mysql_endpoint.database("proto"),
+        'db_pass': mysql_endpoint.password("gdb"),
+        'db_dbname': mysql_endpoint.database("gdb"),
         'db_host': mysql_endpoint.db_host(),
-        'db_user': mysql_endpoint.username("proto"),
+        'db_user': mysql_endpoint.username("gdb"),
         'db_port': "3306",
     })
     # share details to consumer-app
@@ -127,9 +130,9 @@ def render_mysql_config_and_share_details():
     gdb_endpoint.share_details(
         "mysql",
         mysql_endpoint.db_host(),
-        mysql_endpoint.database("proto"),
-        mysql_endpoint.username("proto"),
-        mysql_endpoint.password("proto"),
+        mysql_endpoint.database("gdb"),
+        mysql_endpoint.username("gdb"),
+        mysql_endpoint.password("gdb"),
         "3306",
     )
     
@@ -150,8 +153,6 @@ def restart_app():
 # A new relation is added to an already concrete generic database
 if db_details['dbname']:
     request_flag = 'endpoint.generic-database.' + db_details['dbname'] + '.requested'
-#else:
-# do i need to set something to request_flag here?
 
 @when('endpoint.generic-database.concrete', request_flag)
 def share_details_to_new_relation():
